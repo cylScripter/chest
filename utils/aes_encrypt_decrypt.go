@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"errors"
 	"io"
 )
 
@@ -15,42 +16,62 @@ type Encrypter interface {
 }
 
 type AesEncryptCBC struct {
-	key []byte
+	Key []byte
 }
 
 func NewAesEncryptCBC(key []byte) *AesEncryptCBC {
-	return &AesEncryptCBC{key: key}
+	return &AesEncryptCBC{Key: key}
 }
 
 func (cbc *AesEncryptCBC) Encrypt(origData []byte) []byte {
-	block, _ := aes.NewCipher(cbc.key)
-	blockSize := block.BlockSize()                                  // 获取秘钥块的长度
-	origData = pkcs5Padding(origData, blockSize)                    // 补全码
-	blockMode := cipher.NewCBCEncrypter(block, cbc.key[:blockSize]) // 加密模式
-	encrypted := make([]byte, len(origData))                        // 创建数组
-	blockMode.CryptBlocks(encrypted, origData)                      // 加密
-	return encrypted
+	// NewCipher creates and returns a new cipher.Block. The key argument should be the AES key, either 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256.
+	block, err := aes.NewCipher(cbc.Key)
+	if err != nil {
+		return nil
+	}
+	//判断加密快的大小
+	blockSize := block.BlockSize()
+	//填充
+	encryptBytes := pkcs7Padding(origData, blockSize)
+	//初始化加密数据接收切片
+	crypted := make([]byte, len(encryptBytes))
+	//使用cbc加密模式
+	blockMode := cipher.NewCBCEncrypter(block, cbc.Key[:blockSize])
+	//执行加密
+	blockMode.CryptBlocks(crypted, encryptBytes)
+	return crypted
+}
+
+// pkcs7Padding 填充
+func pkcs7Padding(data []byte, blockSize int) []byte {
+	//判断缺少几位长度。最少1，最多 blockSize
+	padding := blockSize - len(data)%blockSize
+	//补足位数。把切片[]byte{byte(padding)}复制padding个
+	padText := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(data, padText...)
+}
+
+// pkcs7UnPadding 移除
+func pkcs7UnPadding(data []byte) ([]byte, error) {
+	length := len(data)
+	if length == 0 {
+		return nil, errors.New("加密字符串错误！")
+	}
+	//获取填充的个数
+	unPadding := int(data[length-1])
+	return data[:(length - unPadding)], nil
 }
 
 func (cbc *AesEncryptCBC) Decrypt(encrypted []byte) []byte {
-	block, _ := aes.NewCipher(cbc.key)                              // 分组秘钥
+	block, _ := aes.NewCipher(cbc.Key)                              // 分组秘钥
 	blockSize := block.BlockSize()                                  // 获取秘钥块的长度
-	blockMode := cipher.NewCBCDecrypter(block, cbc.key[:blockSize]) // 加密模式
+	blockMode := cipher.NewCBCDecrypter(block, cbc.Key[:blockSize]) // 加密模式
 	decrypted := make([]byte, len(encrypted))                       // 创建数组
 	blockMode.CryptBlocks(decrypted, encrypted)                     // 解密
 	decrypted = pkcs5UnPadding(decrypted)                           // 去除补全码
 	return decrypted
 }
 
-func AesDecryptCBC(encrypted []byte, key []byte) (decrypted []byte) {
-	block, _ := aes.NewCipher(key)                              // 分组秘钥
-	blockSize := block.BlockSize()                              // 获取秘钥块的长度
-	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize]) // 加密模式
-	decrypted = make([]byte, len(encrypted))                    // 创建数组
-	blockMode.CryptBlocks(decrypted, encrypted)                 // 解密
-	decrypted = pkcs5UnPadding(decrypted)                       // 去除补全码
-	return decrypted
-}
 func pkcs5Padding(ciphertext []byte, blockSize int) []byte {
 	padding := blockSize - len(ciphertext)%blockSize
 	padText := bytes.Repeat([]byte{byte(padding)}, padding)

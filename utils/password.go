@@ -4,19 +4,20 @@ import "encoding/hex"
 
 // PasswordManager 密码管理器
 type PasswordManager struct {
-	Key       []byte
-	Encrypter Encrypter
+	encrypt IEncrypt
 }
 
-func NewPasswordManager(key []byte, encrypter Encrypter) *PasswordManager {
+func NewPasswordManager(encrypt IEncrypt) *PasswordManager {
 	return &PasswordManager{
-		Key:       key,
-		Encrypter: encrypter,
+		encrypt: encrypt,
 	}
 }
 
 func (manager *PasswordManager) EncryptPassword(password string) string {
-	encrypted := manager.Encrypter.Encrypt([]byte(password))
+	encrypted, err := manager.encrypt.Encrypt([]byte(password))
+	if err != nil {
+		return ""
+	}
 	return hex.EncodeToString(encrypted)
 }
 
@@ -25,7 +26,11 @@ func (manager *PasswordManager) DecryptPassword(encryptedPassword string) (strin
 	if err != nil {
 		return "", err
 	}
-	return string(manager.Encrypter.Decrypt(encrypted)), nil
+	password, err := manager.encrypt.Decrypt(encrypted)
+	if err != nil {
+		return "", err
+	}
+	return string(password), nil
 }
 
 // ValidatePassword 校验密码 返回是否正确

@@ -3,6 +3,8 @@ package rpc
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
 )
 
 type ErrMsg struct {
@@ -36,6 +38,17 @@ func FromError(err error) *ErrMsg {
 	if ok {
 		return errMsg
 	}
+	// 使用正则表达式解析错误消息
+	re := regexp.MustCompile(`errcode (\d+), errmsg (.+)`)
+	matches := re.FindStringSubmatch(err.Error())
+	if len(matches) == 3 {
+		errCode, _ := strconv.ParseInt(matches[1], 10, 32)
+		return &ErrMsg{
+			ErrCode: int32(errCode),
+			ErrMsg:  matches[2],
+		}
+	}
+	// 解析失败，返回一个系统错误的 ErrMsg 实例
 	return &ErrMsg{
 		ErrCode: KSystemError,
 		ErrMsg:  err.Error(),

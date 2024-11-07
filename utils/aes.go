@@ -6,7 +6,7 @@ import (
 	"crypto/cipher"
 )
 
-// Encrypter 加密接口
+// IEncrypt 加密接口
 type IEncrypt interface {
 	Encrypt(plaintext []byte) ([]byte, error)
 	Decrypt(ciphertext []byte) ([]byte, error)
@@ -30,9 +30,9 @@ func (a *AesEncrypt) Encrypt(origData []byte) ([]byte, error) {
 	blockSize := block.BlockSize()
 	origData = pKCS5Padding(origData, blockSize)
 	blockMode := cipher.NewCBCEncrypter(block, key[:blockSize]) //初始向量的长度必须等于块block的长度16字节
-	crypted := make([]byte, len(origData))
-	blockMode.CryptBlocks(crypted, origData)
-	return crypted, nil
+	encrypted := make([]byte, len(origData))
+	blockMode.CryptBlocks(encrypted, origData)
+	return encrypted, nil
 }
 
 func (a *AesEncrypt) Decrypt(encrypted []byte) ([]byte, error) {
@@ -66,15 +66,15 @@ func (a *AesEncrypt) adjustKeyLength() []byte {
 
 func pKCS5Padding(plaintext []byte, blockSize int) []byte {
 	padding := blockSize - len(plaintext)%blockSize
-	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
-	return append(plaintext, padtext...)
+	padText := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(plaintext, padText...)
 }
 
 func pKCS5UnPadding(origData []byte) []byte {
 	length := len(origData)
-	unpadding := int(origData[length-1])
-	if unpadding > length {
+	unPadding := int(origData[length-1])
+	if unPadding > length {
 		return nil
 	}
-	return origData[:(length - unpadding)]
+	return origData[:(length - unPadding)]
 }

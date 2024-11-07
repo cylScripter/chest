@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package klog
+package log
 
 import (
 	"context"
@@ -22,6 +22,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 )
 
 var logger FullLogger = &defaultLogger{
@@ -175,6 +176,12 @@ func (ll *defaultLogger) logf(lv Level, format *string, v ...interface{}) {
 	if ll.level > lv {
 		return
 	}
+
+	nowTime := time.Now().Format("2006-01-02 15:04:05  ")
+	ll.stdlog.SetPrefix(nowTime)
+
+	ll.stdlog.SetFlags(log.Llongfile)
+
 	msg := lv.toString()
 	if format != nil {
 		msg += fmt.Sprintf(*format, v...)

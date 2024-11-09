@@ -19,6 +19,9 @@ package log
 import (
 	"context"
 	"fmt"
+	"github.com/bytedance/gopkg/cloud/metainfo"
+	"github.com/cloudwego/kitex/pkg/rpcinfo"
+	"github.com/cylScripter/chest/rpc"
 	"io"
 	"log"
 	"os"
@@ -177,12 +180,51 @@ func (ll *defaultLogger) logf(lv Level, format *string, v ...interface{}) {
 		return
 	}
 
-	nowTime := time.Now().Format("2006-01-02 15:04:05  ")
+	nowTime := time.Now().Format(lv.toString() + "2006-01-02 15:04:05 ")
 	ll.stdlog.SetPrefix(nowTime)
 
 	ll.stdlog.SetFlags(log.Llongfile)
 
-	msg := lv.toString()
+	msg := ""
+	if format != nil {
+		msg += fmt.Sprintf(*format, v...)
+	} else {
+		msg += fmt.Sprint(v...)
+	}
+	ll.stdlog.Output(4, msg)
+	if lv == LevelFatal {
+		os.Exit(1)
+	}
+}
+
+func (ll *defaultLogger) ctxLogf(ctx context.Context, lv Level, format *string, v ...interface{}) {
+	if ll.level > lv {
+		return
+	}
+
+	nowTime := time.Now().Format(lv.toString() + "2006-01-02 15:04:05 ")
+	reqId, ok := metainfo.GetValue(ctx, rpc.ReqId)
+	if ok {
+		ll.stdlog.SetPrefix(fmt.Sprintf("%v <%v>", nowTime, reqId))
+	} else {
+		ll.stdlog.SetPrefix(nowTime)
+	}
+	ll.stdlog.SetFlags(log.Lshortfile)
+
+	msg := ""
+	info := rpcinfo.GetRPCInfo(ctx).To()
+	if info != nil {
+		if info.Address().String() != "" {
+			msg += fmt.Sprintf(" %v ", info.Address())
+		}
+		if info.ServiceName() != "" {
+			msg += fmt.Sprintf(" %v", info.ServiceName())
+		}
+		if info.Method() != "" {
+			msg += fmt.Sprintf("/%v", info.Method())
+		}
+	}
+
 	if format != nil {
 		msg += fmt.Sprintf(*format, v...)
 	} else {
@@ -251,29 +293,29 @@ func (ll *defaultLogger) Tracef(format string, v ...interface{}) {
 }
 
 func (ll *defaultLogger) CtxFatalf(ctx context.Context, format string, v ...interface{}) {
-	ll.logf(LevelFatal, &format, v...)
+	ll.ctxLogf(ctx, LevelFatal, &format, v...)
 }
 
 func (ll *defaultLogger) CtxErrorf(ctx context.Context, format string, v ...interface{}) {
-	ll.logf(LevelError, &format, v...)
+	ll.ctxLogf(ctx, LevelError, &format, v...)
 }
 
 func (ll *defaultLogger) CtxWarnf(ctx context.Context, format string, v ...interface{}) {
-	ll.logf(LevelWarn, &format, v...)
+	ll.ctxLogf(ctx, LevelWarn, &format, v...)
 }
 
 func (ll *defaultLogger) CtxNoticef(ctx context.Context, format string, v ...interface{}) {
-	ll.logf(LevelNotice, &format, v...)
+	ll.ctxLogf(ctx, LevelNotice, &format, v...)
 }
 
 func (ll *defaultLogger) CtxInfof(ctx context.Context, format string, v ...interface{}) {
-	ll.logf(LevelInfo, &format, v...)
+	ll.ctxLogf(ctx, LevelInfo, &format, v...)
 }
 
 func (ll *defaultLogger) CtxDebugf(ctx context.Context, format string, v ...interface{}) {
-	ll.logf(LevelDebug, &format, v...)
+	ll.ctxLogf(ctx, LevelDebug, &format, v...)
 }
 
 func (ll *defaultLogger) CtxTracef(ctx context.Context, format string, v ...interface{}) {
-	ll.logf(LevelTrace, &format, v...)
+	ll.ctxLogf(ctx, LevelTrace, &format, v...)
 }

@@ -214,9 +214,6 @@ func (ll *defaultLogger) ctxLogf(ctx context.Context, lv Level, format *string, 
 	msg := ""
 	info := rpcinfo.GetRPCInfo(ctx).To()
 	if info != nil {
-		if info.Address().String() != "" {
-			msg += fmt.Sprintf(" %v ", info.Address())
-		}
 		if info.ServiceName() != "" {
 			msg += fmt.Sprintf(" %v", info.ServiceName())
 		}

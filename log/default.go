@@ -202,10 +202,10 @@ func (ll *defaultLogger) ctxLogf(ctx context.Context, lv Level, format *string, 
 		return
 	}
 
-	nowTime := time.Now().Format(lv.toString() + "2006-01-02 15:04:05 ")
+	nowTime := time.Now().Format("2006-01-02 15:04:05 ")
 	reqId, ok := metainfo.GetValue(ctx, rpc.ReqId)
 	if ok {
-		ll.stdlog.SetPrefix(fmt.Sprintf("%v <%v>", nowTime, reqId))
+		ll.stdlog.SetPrefix(fmt.Sprintf("%v <%v> ", nowTime, reqId))
 	} else {
 		ll.stdlog.SetPrefix(nowTime)
 	}
@@ -213,15 +213,17 @@ func (ll *defaultLogger) ctxLogf(ctx context.Context, lv Level, format *string, 
 
 	msg := ""
 	info := rpcinfo.GetRPCInfo(ctx).To()
+
 	if info != nil {
 		if info.ServiceName() != "" {
 			msg += fmt.Sprintf(" %v", info.ServiceName())
 		}
 		if info.Method() != "" {
-			msg += fmt.Sprintf("/%v", info.Method())
+			msg += fmt.Sprintf("/%v  ", info.Method())
 		}
 	}
 
+	msg += lv.toString()
 	if format != nil {
 		msg += fmt.Sprintf(*format, v...)
 	} else {

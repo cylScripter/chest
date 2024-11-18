@@ -1,6 +1,10 @@
 package dbx
 
-import "reflect"
+import (
+	"fmt"
+	"github.com/cylScripter/chest/log"
+	"reflect"
+)
 
 type ModelConfig struct {
 	Type            interface{}
@@ -28,5 +32,27 @@ func NewModel(c *ModelConfig) *Model {
 		typ = typ.Elem()
 	}
 	m.typ = typ
+	m.modelType = fmt.Sprintf("%T", m.Type)
 	return m
+}
+func (p *Model) NewScope() *Scope {
+	s := &Scope{
+		m:  p,
+		db: p.Db,
+	}
+	s.cond.isTopLevel = true
+	return s
+}
+
+func (p *Model) Where(whereCond ...interface{}) *Scope {
+	s := p.NewScope()
+	log.Infof(" whereCond:%v", s.GetCondString())
+	s.cond.Where(whereCond...)
+	return s
+}
+
+func (p *Model) OrWhere(whereCond ...interface{}) *Scope {
+	s := p.NewScope()
+	s.cond.OrWhere(whereCond...)
+	return s
 }

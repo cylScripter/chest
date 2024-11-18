@@ -1,5 +1,11 @@
 package utils
 
+import (
+	"fmt"
+	"strings"
+	"unicode"
+)
+
 func EscapeMysqlString(sql string) string {
 	dest := make([]byte, 0, 2*len(sql))
 	var escape byte
@@ -29,4 +35,39 @@ func EscapeMysqlString(sql string) string {
 		}
 	}
 	return string(dest)
+}
+
+// CamelToSnake 将驼峰命名法转换为下划线命名法
+func CamelToSnake(modelType string) string {
+	var modelPrefix string
+	var s string
+	sList := strings.Split(modelType, ".")
+	fmt.Println(sList)
+	if len(sList) >= 2 {
+		modelPrefix = sList[0]
+		s = sList[1]
+	} else {
+		s = modelType
+	}
+	var newStr string
+
+	fmt.Println(s)
+	if len(s) > 5 && s[0:5] == "Model" {
+		newStr = s[5:]
+	} else {
+		newStr = s
+	}
+	var result []rune
+	for i, r := range newStr {
+		if unicode.IsUpper(r) && i > 0 {
+			result = append(result, '_')
+		}
+		result = append(result, unicode.ToLower(r))
+	}
+
+	if modelPrefix != "" {
+		modelPrefix = strings.ToLower(modelPrefix)
+		return modelPrefix + "_" + string(result)
+	}
+	return string(result)
 }

@@ -11,8 +11,6 @@ import (
 	"github.com/elliotchance/pie/pie"
 )
 
-var disableSetCorpOrApp = false
-
 type Cond struct {
 	conds       pie.Strings
 	isOr        bool

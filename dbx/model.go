@@ -2,7 +2,6 @@ package dbx
 
 import (
 	"fmt"
-	"github.com/cylScripter/chest/log"
 	"reflect"
 )
 
@@ -14,13 +13,14 @@ type ModelConfig struct {
 
 type Model struct {
 	ModelConfig
+	proxy       DbProxy
 	typ         reflect.Type
 	tableName   string
 	modelType   string
 	notFoundErr error
 }
 
-func NewModel(c *ModelConfig) *Model {
+func NewModel(c *ModelConfig, proxy DbProxy) *Model {
 	m := &Model{
 		ModelConfig: *c,
 	}
@@ -33,6 +33,7 @@ func NewModel(c *ModelConfig) *Model {
 	}
 	m.typ = typ
 	m.modelType = fmt.Sprintf("%T", m.Type)
+	m.proxy = proxy
 	return m
 }
 func (p *Model) NewScope() *Scope {
@@ -46,13 +47,13 @@ func (p *Model) NewScope() *Scope {
 
 func (p *Model) Where(whereCond ...interface{}) *Scope {
 	s := p.NewScope()
-	log.Infof(" whereCond:%v", s.GetCondString())
 	s.cond.Where(whereCond...)
 	return s
 }
 
 func (p *Model) OrWhere(whereCond ...interface{}) *Scope {
 	s := p.NewScope()
+	s.cond.isOr = true
 	s.cond.OrWhere(whereCond...)
 	return s
 }

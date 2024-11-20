@@ -1,6 +1,7 @@
 package dbx
 
 import (
+	"context"
 	"fmt"
 	"github.com/cylScripter/chest/utils"
 	"reflect"
@@ -182,4 +183,33 @@ func (s *Scope) GetCondString() string {
 func (s *Scope) Select(fields ...string) *Scope {
 	s.selects = append(s.selects, fields...)
 	return s
+}
+
+func (s *Scope) Find(ctx context.Context, dest interface{}) error {
+	if len(s.groups) > 0 {
+		s.needCount = true
+	}
+	return s.m.proxy.Find(ctx, &FindReq{
+		Cond:    []string{s.GetCondString()},
+		Groups:  []string{s.getGroup()},
+		Limit:   s.limit,
+		Offset:  s.offset,
+		Orders:  []string{s.getOrder()},
+		Selects: s.selects,
+	}, dest)
+}
+func (s *Scope) ToSql(ctx context.Context, dest interface{}) (string, error) {
+
+	if len(s.groups) > 0 {
+		s.needCount = true
+	}
+	return s.m.proxy.ToSql(ctx, &FindReq{
+		Cond:      []string{s.GetCondString()},
+		Groups:    []string{s.getGroup()},
+		Limit:     s.limit,
+		Offset:    s.offset,
+		Orders:    []string{s.getOrder()},
+		Selects:   s.selects,
+		needGroup: s.needCount,
+	}, dest)
 }

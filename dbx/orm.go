@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/cylScripter/chest/log"
+	"github.com/cylScripter/chest/utils"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"strings"
 )
 
 type DbProxy interface {
 	Find(ctx context.Context, req *WhereReq, dest interface{}) error
 	ToSql(ctx context.Context, req *WhereReq, dest interface{}) (string, error)
+	AutoMigrate(dest ...interface{}) error
 }
 
 type DbConfig struct {
@@ -66,6 +69,9 @@ func (p *Db) Find(ctx context.Context, req *WhereReq, dest interface{}) error {
 	query := p.db
 	if req.TableName != "" {
 		query = query.Table(req.TableName)
+	} else {
+		modelType := strings.ReplaceAll(fmt.Sprintf("%T", dest), "[]", "")
+		query = query.Table(utils.CamelToSnake(modelType))
 	}
 	if req.Limit > 0 {
 		query = query.Limit(int(req.Limit))
@@ -98,6 +104,9 @@ func (p *Db) ToSql(ctx context.Context, req *WhereReq, dest interface{}) (string
 		query := tx
 		if req.TableName != "" {
 			query = query.Table(req.TableName)
+		} else {
+			modelType := strings.ReplaceAll(fmt.Sprintf("%T", dest), "[]", "")
+			query = query.Table(utils.CamelToSnake(modelType))
 		}
 		for _, cond := range req.Cond {
 			query = query.Where(cond)
@@ -124,6 +133,21 @@ func (p *Db) Create(ctx context.Context, req *WhereReq, dest interface{}) error 
 	query := p.db
 	if req.TableName != "" {
 		query = query.Table(req.TableName)
+	} else {
+		modelType := fmt.Sprintf("%T", dest)
+		query = query.Table(utils.CamelToSnake(modelType))
 	}
 	return query.Create(dest).Error
+}
+
+func (p *Db) AutoMigrate(dest ...interface{}) error {
+	for _, v := range dest {
+		modelType := fmt.Sprintf("%T", v)
+		err := p.db.Table(utils.CamelToSnake(modelType)).AutoMigrate(v)
+		if err != nil {
+			log.Errorf("AutoMigrate failed, err:%v", err)
+			return err
+		}
+	}
+	return nil
 }

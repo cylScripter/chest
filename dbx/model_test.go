@@ -7,7 +7,7 @@ import (
 )
 
 type ModelUser struct {
-	Id          int32  `thrift:"id,1" frugal:"1,default,i32" gorm:"column:id" json:"id"`
+	Id          int32  `thrift:"id,1" frugal:"1,default,i32" json:"id" gorm:"uniqueIndex"`
 	CreatedAt   int32  `thrift:"created_at,2" frugal:"2,default,i32" json:"created_at"`
 	UpdatedAt   int32  `thrift:"updated_at,3" frugal:"3,default,i32" json:"updated_at"`
 	DeletedAt   int32  `thrift:"deleted_at,4" frugal:"4,default,i32" json:"deleted_at"`
@@ -64,6 +64,9 @@ func TestNewModel(t *testing.T) {
 	sql, err := User.NewScope().Select("id").Where("deleted_at", 0).OrderAsc("id").ToSql(context.Background(), &userList)
 	log.Infof("sql:%v", sql)
 
-	log.Infof("userList:%v", userList[0].UserId)
+	err = orm.AutoMigrate(&ModelUser{})
+	if err != nil {
+		return
+	}
 
 }

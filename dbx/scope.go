@@ -190,12 +190,13 @@ func (s *Scope) Find(ctx context.Context, dest interface{}) error {
 		s.needCount = true
 	}
 	return s.m.proxy.Find(ctx, &WhereReq{
-		Cond:    []string{s.GetCondString()},
-		Groups:  []string{s.getGroup()},
-		Limit:   s.limit,
-		Offset:  s.offset,
-		Orders:  []string{s.getOrder()},
-		Selects: s.selects,
+		Cond:      []string{s.GetCondString()},
+		Groups:    []string{s.getGroup()},
+		Limit:     s.limit,
+		Offset:    s.offset,
+		Orders:    []string{s.getOrder()},
+		Selects:   s.selects,
+		TableName: s.m.tableName,
 	}, dest)
 }
 func (s *Scope) ToSql(ctx context.Context, dest interface{}) (string, error) {
@@ -211,5 +212,6 @@ func (s *Scope) ToSql(ctx context.Context, dest interface{}) (string, error) {
 		Orders:    []string{s.getOrder()},
 		Selects:   s.selects,
 		needGroup: s.needCount,
+		TableName: s.m.tableName,
 	}, dest)
 }

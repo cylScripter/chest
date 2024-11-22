@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"strings"
 	"unicode"
 )
@@ -42,7 +41,6 @@ func CamelToSnake(modelType string) string {
 	var modelPrefix string
 	var s string
 	sList := strings.Split(modelType, ".")
-	fmt.Println(sList)
 	if len(sList) >= 2 {
 		modelPrefix = sList[0]
 		s = sList[1]
@@ -50,8 +48,6 @@ func CamelToSnake(modelType string) string {
 		s = modelType
 	}
 	var newStr string
-
-	fmt.Println(s)
 	if len(s) > 5 && s[0:5] == "Model" {
 		newStr = s[5:]
 	} else {
@@ -67,7 +63,7 @@ func CamelToSnake(modelType string) string {
 
 	if modelPrefix != "" {
 		modelPrefix = strings.ToLower(modelPrefix)
-		return modelPrefix + "_" + string(result)
+		return strings.ReplaceAll(modelPrefix+"_"+string(result), "*", "")
 	}
 	return string(result)
 }

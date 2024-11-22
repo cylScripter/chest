@@ -9,8 +9,8 @@ import (
 )
 
 type DbProxy interface {
-	Find(ctx context.Context, req *FindReq, dest interface{}) error
-	ToSql(ctx context.Context, req *FindReq, dest interface{}) (string, error)
+	Find(ctx context.Context, req *WhereReq, dest interface{}) error
+	ToSql(ctx context.Context, req *WhereReq, dest interface{}) (string, error)
 }
 
 type DbConfig struct {
@@ -48,7 +48,7 @@ func NewDb(cfg DbConfig) (*Db, error) {
 	}, nil
 }
 
-type FindReq struct {
+type WhereReq struct {
 	Limit     uint32
 	Offset    uint32
 	Selects   []string
@@ -56,13 +56,17 @@ type FindReq struct {
 	Orders    []string
 	Cond      []string
 	needGroup bool
+	TableName string
 }
 
 type FindResp struct {
 }
 
-func (p *Db) Find(ctx context.Context, req *FindReq, dest interface{}) error {
+func (p *Db) Find(ctx context.Context, req *WhereReq, dest interface{}) error {
 	query := p.db
+	if req.TableName != "" {
+		query = query.Table(req.TableName)
+	}
 	if req.Limit > 0 {
 		query = query.Limit(int(req.Limit))
 	}
@@ -86,13 +90,15 @@ func (p *Db) Find(ctx context.Context, req *FindReq, dest interface{}) error {
 	for _, order := range req.Orders {
 		query = query.Order(order)
 	}
-
 	return query.Find(dest).Error
 }
 
-func (p *Db) ToSql(ctx context.Context, req *FindReq, dest interface{}) (string, error) {
+func (p *Db) ToSql(ctx context.Context, req *WhereReq, dest interface{}) (string, error) {
 	sql := p.db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		query := tx
+		if req.TableName != "" {
+			query = query.Table(req.TableName)
+		}
 		for _, cond := range req.Cond {
 			query = query.Where(cond)
 		}
@@ -112,4 +118,12 @@ func (p *Db) ToSql(ctx context.Context, req *FindReq, dest interface{}) (string,
 		return query.Find(dest)
 	})
 	return sql, nil
+}
+
+func (p *Db) Create(ctx context.Context, req *WhereReq, dest interface{}) error {
+	query := p.db
+	if req.TableName != "" {
+		query = query.Table(req.TableName)
+	}
+	return query.Create(dest).Error
 }

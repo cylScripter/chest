@@ -189,7 +189,7 @@ func (s *Scope) Find(ctx context.Context, dest interface{}) error {
 	if len(s.groups) > 0 {
 		s.needCount = true
 	}
-	return s.m.proxy.Find(ctx, &FindReq{
+	return s.m.proxy.Find(ctx, &WhereReq{
 		Cond:    []string{s.GetCondString()},
 		Groups:  []string{s.getGroup()},
 		Limit:   s.limit,
@@ -203,7 +203,7 @@ func (s *Scope) ToSql(ctx context.Context, dest interface{}) (string, error) {
 	if len(s.groups) > 0 {
 		s.needCount = true
 	}
-	return s.m.proxy.ToSql(ctx, &FindReq{
+	return s.m.proxy.ToSql(ctx, &WhereReq{
 		Cond:      []string{s.GetCondString()},
 		Groups:    []string{s.getGroup()},
 		Limit:     s.limit,

@@ -180,12 +180,12 @@ func (ll *defaultLogger) logf(lv Level, format *string, v ...interface{}) {
 		return
 	}
 
-	nowTime := time.Now().Format(lv.toString() + "2006-01-02 15:04:05 ")
+	nowTime := time.Now().Format("2006-01-02 15:04:05 ")
 	ll.stdlog.SetPrefix(nowTime)
 
 	ll.stdlog.SetFlags(log.Llongfile)
 
-	msg := ""
+	msg := lv.toString()
 	if format != nil {
 		msg += fmt.Sprintf(*format, v...)
 	} else {
@@ -219,7 +219,7 @@ func (ll *defaultLogger) ctxLogf(ctx context.Context, lv Level, format *string, 
 			msg += fmt.Sprintf(" %v", info.ServiceName())
 		}
 		if info.Method() != "" {
-			msg += fmt.Sprintf("/%v  ", info.Method())
+			msg += fmt.Sprintf("/%v ", info.Method())
 		}
 	}
 

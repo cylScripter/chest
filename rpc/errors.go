@@ -24,6 +24,16 @@ const (
 	KExceedMaxCallDepth = -2005
 )
 
+var (
+	errCodeMap = map[int32]string{
+		KSystemError:            "system error",
+		KErrRequestBodyReadFail: "read req body err",
+		KErrResponseMarshalFail: "marshal response err",
+		KProcessPanic:           "process panic",
+		KExceedMaxCallDepth:     "exceed max call depth",
+	}
+)
+
 func CreateErrorWithMsg(errCode int32, errMsg string) *ErrMsg {
 	return &ErrMsg{ErrCode: errCode, ErrMsg: errMsg}
 }
@@ -53,4 +63,29 @@ func FromError(err error) *ErrMsg {
 		ErrCode: KSystemError,
 		ErrMsg:  err.Error(),
 	}
+}
+
+var InvalidArgErrCode = 1001
+var InvalidReqFormat = 1003
+var RecordNotFound = 1004
+var ErrRecordNotFound = CreateErrorWithMsg(int32(RecordNotFound), "record not found")
+
+func GetErrMsg(errCode int32) string {
+	if errCode == 0 {
+		return "success"
+	}
+	msg, ok := errCodeMap[errCode]
+	if ok {
+		return msg
+	}
+	if errCode < 0 {
+		return "system error"
+	}
+	return "unknown"
+}
+func CreateError(errCode int32) *ErrMsg {
+	return &ErrMsg{ErrCode: errCode, ErrMsg: errCodeMap[errCode]}
+}
+func InvalidArg(msg string, args ...interface{}) *ErrMsg {
+	return CreateErrorWithMsg(int32(InvalidArgErrCode), fmt.Sprintf(msg, args...))
 }

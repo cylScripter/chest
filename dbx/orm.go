@@ -202,7 +202,6 @@ func (p *Db) First(ctx context.Context, req *WhereReq, dest interface{}) error {
 	}
 	// group
 	if req.needGroup {
-		log.Infof("groups:%v", req.Groups)
 		for _, group := range req.Groups {
 			query = query.Group(group)
 		}

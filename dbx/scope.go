@@ -247,7 +247,7 @@ func (s *Scope) First(ctx context.Context, dest interface{}) error {
 		orders = append(orders, s.getOrder())
 	}
 	return s.m.proxy.First(ctx, &WhereReq{
-		needGroup: true,
+		needGroup: s.needCount,
 		Unscoped:  s.unscoped,
 		Cond:      []string{s.GetCondString()},
 		Groups:    []string{s.getGroup()},
@@ -267,7 +267,7 @@ func (s *Scope) FindPaginate(ctx context.Context, dest interface{}) (*base.Pagin
 		orders = append(orders, s.getOrder())
 	}
 	return s.m.proxy.FindPaginate(ctx, &WhereReq{
-		needGroup: true,
+		needGroup: s.needCount,
 		Unscoped:  s.unscoped,
 		Cond:      []string{s.GetCondString()},
 		Groups:    []string{s.getGroup()},

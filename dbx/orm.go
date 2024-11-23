@@ -317,7 +317,7 @@ func (p *Db) Count(ctx context.Context, req *WhereReq, dest interface{}) (int64,
 
 func ScopeGetIsDel() func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("deleted_at > 0")
+		return db.Where("deleted_at = 0")
 	}
 }
 

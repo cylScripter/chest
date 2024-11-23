@@ -1,6 +1,7 @@
 package dbx
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 )
@@ -44,16 +45,27 @@ func (p *Model) NewScope() *Scope {
 	s.cond.isTopLevel = true
 	return s
 }
-
+func (p *Model) UnScoped() *Scope {
+	s := p.NewScope()
+	s.Unscoped()
+	return s
+}
 func (p *Model) Where(whereCond ...interface{}) *Scope {
 	s := p.NewScope()
 	s.cond.Where(whereCond...)
 	return s
 }
-
 func (p *Model) OrWhere(whereCond ...interface{}) *Scope {
 	s := p.NewScope()
 	s.cond.isOr = true
 	s.cond.OrWhere(whereCond...)
 	return s
+}
+
+func (p *Model) getModel() interface{} {
+	return p.Type
+}
+func (p *Model) Create(ctx context.Context, dest interface{}) error {
+	s := p.NewScope()
+	return s.Model(p.getModel()).Create(ctx, dest)
 }

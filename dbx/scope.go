@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/cylScripter/chest/utils"
+	"github.com/cylScripter/openapi/base"
 	"reflect"
 	"strings"
 )
@@ -63,6 +64,16 @@ func (s *Scope) SetTablePrefix(prefix string) *Scope {
 	s.cond.tablePrefix = prefix
 	return s
 }
+
+func (p *Model) Unscoped() *Scope {
+	return p.WithTrash()
+}
+func (p *Model) WithTrash() *Scope {
+	s := p.NewScope()
+	s.Unscoped()
+	return s
+}
+
 func (s *Scope) SetLimit(limit uint32) *Scope {
 	s.limit = limit
 	return s
@@ -186,21 +197,29 @@ func (s *Scope) Select(fields ...string) *Scope {
 }
 
 func (s *Scope) Find(ctx context.Context, dest interface{}) error {
+	model := s.m.getModel()
+	s.Model(model)
 	if len(s.groups) > 0 {
 		s.needCount = true
 	}
+	var orders []string
+	if len(s.orders) > 0 {
+		orders = append(orders, s.getOrder())
+	}
 	return s.m.proxy.Find(ctx, &WhereReq{
+		Unscoped:  s.unscoped,
 		Cond:      []string{s.GetCondString()},
 		Groups:    []string{s.getGroup()},
 		Limit:     s.limit,
 		Offset:    s.offset,
-		Orders:    []string{s.getOrder()},
+		Orders:    orders,
 		Selects:   s.selects,
 		TableName: s.m.tableName,
 	}, dest)
 }
 func (s *Scope) ToSql(ctx context.Context, dest interface{}) (string, error) {
-
+	model := s.m.getModel()
+	s.Model(model)
 	if len(s.groups) > 0 {
 		s.needCount = true
 	}
@@ -214,4 +233,105 @@ func (s *Scope) ToSql(ctx context.Context, dest interface{}) (string, error) {
 		needGroup: s.needCount,
 		TableName: s.m.tableName,
 	}, dest)
+}
+func (s *Scope) First(ctx context.Context, dest interface{}) error {
+	model := s.m.getModel()
+	s.Model(model)
+	if len(s.groups) > 0 {
+		s.needCount = true
+	}
+	var orders []string
+	if len(s.orders) > 0 {
+		orders = append(orders, s.getOrder())
+	}
+	return s.m.proxy.First(ctx, &WhereReq{
+		needGroup: true,
+		Unscoped:  s.unscoped,
+		Cond:      []string{s.GetCondString()},
+		Groups:    []string{s.getGroup()},
+		Limit:     s.limit,
+		Offset:    s.offset,
+		Orders:    orders,
+		Selects:   s.selects,
+		TableName: s.m.tableName,
+	}, dest)
+}
+func (s *Scope) FindPaginate(ctx context.Context, dest interface{}) (*base.Paginate, error) {
+	model := s.m.getModel()
+	s.Model(model)
+	if len(s.groups) > 0 {
+		s.needCount = true
+	}
+	var orders []string
+	if len(s.orders) > 0 {
+		orders = append(orders, s.getOrder())
+	}
+	return s.m.proxy.FindPaginate(ctx, &WhereReq{
+		needGroup: true,
+		Unscoped:  s.unscoped,
+		Cond:      []string{s.GetCondString()},
+		Groups:    []string{s.getGroup()},
+		Limit:     s.limit,
+		Offset:    s.offset,
+		Orders:    orders,
+		Selects:   s.selects,
+		TableName: s.m.tableName,
+	}, dest)
+}
+func (s *Scope) Create(ctx context.Context, dest interface{}) error {
+	model := s.m.getModel()
+	s.Model(model)
+	return s.m.proxy.Create(ctx, &CreateReq{
+		TableName: s.m.tableName,
+		Selects:   s.selects,
+		Omit:      s.skips,
+	}, dest)
+}
+func (s *Scope) Count(ctx context.Context) (int64, error) {
+	model := s.m.getModel()
+	s.Model(model)
+	if len(s.groups) > 0 {
+		s.needCount = true
+	}
+	var orders []string
+	if len(s.orders) > 0 {
+		orders = append(orders, s.getOrder())
+	}
+	return s.m.proxy.Count(ctx, &WhereReq{
+		Unscoped:  s.unscoped,
+		Limit:     s.limit,
+		Offset:    s.offset,
+		Cond:      []string{s.GetCondString()},
+		Groups:    []string{s.getGroup()},
+		needGroup: s.needCount,
+		Orders:    orders,
+		TableName: s.m.tableName,
+	}, model)
+}
+func (s *Scope) UseDb(db string) *Scope {
+	s.db = db
+	return s
+}
+func (s *Scope) UseTable(table string) *Scope {
+	s.table = table
+	return s
+}
+func (s *Scope) Update(ctx context.Context, values map[string]interface{}) (UpdateResult, error) {
+	model := s.m.getModel()
+	s.Model(model)
+	return s.m.proxy.Update(ctx, &WhereReq{
+		Unscoped:  s.unscoped,
+		Cond:      []string{s.GetCondString()},
+		TableName: s.m.tableName,
+	}, model, values)
+
+}
+func (s *Scope) Delete(ctx context.Context) (DeleteResult, error) {
+	model := s.m.getModel()
+	s.Model(model)
+	return s.m.proxy.Delete(ctx, &WhereReq{
+		Unscoped:  s.unscoped,
+		Cond:      []string{s.GetCondString()},
+		TableName: s.m.tableName,
+	}, model)
 }

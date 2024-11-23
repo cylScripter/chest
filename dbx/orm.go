@@ -4,16 +4,28 @@ import (
 	"context"
 	"fmt"
 	"github.com/cylScripter/chest/log"
+	"github.com/cylScripter/chest/rpc"
 	"github.com/cylScripter/chest/utils"
+	"github.com/cylScripter/openapi/base"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"reflect"
 	"strings"
+	"time"
 )
 
+const DefaultLimit = 2000
+
 type DbProxy interface {
+	First(ctx context.Context, req *WhereReq, dest interface{}) error
 	Find(ctx context.Context, req *WhereReq, dest interface{}) error
+	Create(ctx context.Context, req *CreateReq, dest interface{}) error
 	ToSql(ctx context.Context, req *WhereReq, dest interface{}) (string, error)
 	AutoMigrate(dest ...interface{}) error
+	FindPaginate(ctx context.Context, req *WhereReq, dest interface{}) (*base.Paginate, error)
+	Count(ctx context.Context, req *WhereReq, dest interface{}) (int64, error)
+	Delete(ctx context.Context, req *WhereReq, dest interface{}) (DeleteResult, error)
+	Update(ctx context.Context, req *WhereReq, dest interface{}, values map[string]interface{}) (UpdateResult, error)
 }
 
 type DbConfig struct {
@@ -29,6 +41,17 @@ type DbConfig struct {
 type Db struct {
 	config DbConfig
 	db     *gorm.DB
+}
+
+func (p *Db) GetModel(tableName string, dest interface{}) *gorm.DB {
+	query := p.db
+	if tableName != "" {
+		query = query.Table(tableName)
+	} else {
+		modelType := strings.ReplaceAll(fmt.Sprintf("%T", dest), "[]", "")
+		query = query.Table(utils.CamelToSnake(modelType))
+	}
+	return query
 }
 
 func NewDb(cfg DbConfig) (*Db, error) {
@@ -59,19 +82,39 @@ type WhereReq struct {
 	Orders    []string
 	Cond      []string
 	needGroup bool
+	Unscoped  bool
 	TableName string
 }
 
-type FindResp struct {
+type CreateReq struct {
+	TableName string
+	Selects   []string
+	Omit      []string
+}
+
+type DeleteResult struct {
+	RowsAffected uint64
+}
+type UpdateResult struct {
+	RowsAffected uint64
+	Sql          string
+}
+type SelectResult struct {
+	Total      uint32
+	NextOffset uint32
+}
+type UpdateOrCreateResult struct {
+	Created      bool
+	RowsAffected uint64
+}
+type FirstOrCreateResult struct {
+	Created bool
 }
 
 func (p *Db) Find(ctx context.Context, req *WhereReq, dest interface{}) error {
-	query := p.db
-	if req.TableName != "" {
-		query = query.Table(req.TableName)
-	} else {
-		modelType := strings.ReplaceAll(fmt.Sprintf("%T", dest), "[]", "")
-		query = query.Table(utils.CamelToSnake(modelType))
+	query := p.GetModel(req.TableName, dest)
+	if !req.Unscoped {
+		query = query.Scopes(ScopeGetIsDel())
 	}
 	if req.Limit > 0 {
 		query = query.Limit(int(req.Limit))
@@ -96,6 +139,7 @@ func (p *Db) Find(ctx context.Context, req *WhereReq, dest interface{}) error {
 	for _, order := range req.Orders {
 		query = query.Order(order)
 	}
+
 	return query.Find(dest).Error
 }
 
@@ -107,6 +151,10 @@ func (p *Db) ToSql(ctx context.Context, req *WhereReq, dest interface{}) (string
 		} else {
 			modelType := strings.ReplaceAll(fmt.Sprintf("%T", dest), "[]", "")
 			query = query.Table(utils.CamelToSnake(modelType))
+		}
+
+		if !req.Unscoped {
+			query = query.Scopes(ScopeGetIsDel())
 		}
 		for _, cond := range req.Cond {
 			query = query.Where(cond)
@@ -129,15 +177,40 @@ func (p *Db) ToSql(ctx context.Context, req *WhereReq, dest interface{}) (string
 	return sql, nil
 }
 
-func (p *Db) Create(ctx context.Context, req *WhereReq, dest interface{}) error {
-	query := p.db
-	if req.TableName != "" {
-		query = query.Table(req.TableName)
-	} else {
-		modelType := fmt.Sprintf("%T", dest)
-		query = query.Table(utils.CamelToSnake(modelType))
+func (p *Db) Create(ctx context.Context, req *CreateReq, dest interface{}) error {
+	query := p.GetModel(req.TableName, dest)
+	if len(req.Omit) > 0 {
+		query = query.Omit(req.Omit...)
+	}
+	if len(req.Selects) > 0 {
+		query = query.Select(req.Selects)
 	}
 	return query.Create(dest).Error
+}
+
+func (p *Db) First(ctx context.Context, req *WhereReq, dest interface{}) error {
+	query := p.GetModel(req.TableName, dest)
+	if !req.Unscoped {
+		query = query.Scopes(ScopeGetIsDel())
+	}
+	if len(req.Selects) > 0 {
+		query = query.Select(req.Selects)
+	}
+	// where
+	for _, cond := range req.Cond {
+		query = query.Where(cond)
+	}
+	// group
+	if req.needGroup {
+		log.Infof("groups:%v", req.Groups)
+		for _, group := range req.Groups {
+			query = query.Group(group)
+		}
+	}
+	for _, order := range req.Orders {
+		query = query.Order(order)
+	}
+	return query.First(dest).Error
 }
 
 func (p *Db) AutoMigrate(dest ...interface{}) error {
@@ -150,4 +223,130 @@ func (p *Db) AutoMigrate(dest ...interface{}) error {
 		}
 	}
 	return nil
+}
+
+func (p *Db) FindPaginate(ctx context.Context, req *WhereReq, dest interface{}) (*base.Paginate, error) {
+	result, err := p.FindWithResult(ctx, req, dest)
+	return &base.Paginate{
+		Total:  int32(result.Total),
+		Offset: int32(req.Offset),
+		Limit:  int32(req.Limit),
+	}, err
+}
+
+func (p *Db) FindWithResult(ctx context.Context, req *WhereReq, dest interface{}) (SelectResult, error) {
+	var res SelectResult
+	v := reflect.ValueOf(dest)
+	if v.Type().Kind() != reflect.Ptr {
+		err := rpc.InvalidArg("invalid out type, not ptr")
+		return res, err
+	}
+
+	v = v.Elem()
+	if v.Type().Kind() != reflect.Slice {
+		err := rpc.InvalidArg("invalid out type, not ptr to slice")
+		return res, err
+	}
+	var total int64
+	query := p.GetModel(req.TableName, dest).Count(&total)
+	var limit int
+	switch {
+	case req.Limit < 0:
+		limit = 10
+	case req.Limit > DefaultLimit:
+		limit = DefaultLimit
+	default:
+		limit = int(req.Limit)
+	}
+	if !req.Unscoped {
+		query = query.Scopes(ScopeGetIsDel())
+	}
+	if limit > 0 {
+		query = query.Limit(int(req.Limit))
+	}
+	if req.Offset > 0 {
+		query = query.Offset(int(req.Offset))
+	}
+	if len(req.Selects) > 0 {
+		query = query.Select(req.Selects)
+	}
+	for _, cond := range req.Cond {
+		query = query.Where(cond)
+	}
+	for _, order := range req.Orders {
+		query = query.Order(order)
+	}
+	// group
+	if req.needGroup {
+		for _, group := range req.Groups {
+			query = query.Group(group)
+		}
+	}
+	result := query.Find(dest)
+	res.Total = uint32(total)
+	return res, result.Error
+}
+
+func (p *Db) Count(ctx context.Context, req *WhereReq, dest interface{}) (int64, error) {
+	query := p.GetModel(req.TableName, dest).Select("count(id) as count")
+	if !req.Unscoped {
+		query = query.Scopes(ScopeGetIsDel())
+	}
+	type res struct {
+		Count int64 `json:"count"`
+	}
+	var result res
+	if req.Limit > 0 {
+		query = query.Limit(int(req.Limit))
+	}
+
+	if req.Offset > 0 {
+		query = query.Offset(int(req.Offset))
+	}
+
+	for _, cond := range req.Cond {
+		query = query.Where(cond)
+	}
+	if req.needGroup {
+		for _, group := range req.Groups {
+			query = query.Group(group)
+		}
+	}
+	err := query.First(&result).Error
+	return result.Count, err
+}
+
+func ScopeGetIsDel() func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("deleted_at > 0")
+	}
+}
+
+func (p *Db) Delete(ctx context.Context, req *WhereReq, dest interface{}) (DeleteResult, error) {
+	var res DeleteResult
+	query := p.GetModel(req.TableName, dest)
+	if !req.Unscoped {
+		query = query.Scopes(ScopeGetIsDel())
+	}
+	for _, cond := range req.Cond {
+		query = query.Where(cond)
+	}
+	result := query.Update("deleted_at", time.Now().Unix())
+	res.RowsAffected = uint64(result.RowsAffected)
+	return res, result.Error
+}
+
+func (p *Db) Update(ctx context.Context, req *WhereReq, dest interface{}, values map[string]interface{}) (UpdateResult, error) {
+	res := UpdateResult{}
+	query := p.GetModel(req.TableName, dest)
+	if !req.Unscoped {
+		query = query.Scopes(ScopeGetIsDel())
+	}
+	for _, cond := range req.Cond {
+		query = query.Where(cond)
+	}
+	result := query.Updates(values)
+	res.Sql = result.Statement.SQL.String()
+	res.RowsAffected = uint64(result.RowsAffected)
+	return res, nil
 }

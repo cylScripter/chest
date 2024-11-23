@@ -48,7 +48,7 @@ func ValidateRequest(next endpoint.Endpoint) endpoint.Endpoint {
 				field := requestType.Elem().Field(i)
 				fieldValue := requestValue.Elem().Field(i)
 				jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]
-				if field.Tag.Get("format") != "" && fieldValue.IsZero() {
+				if field.Tag.Get("validate") != "" && fieldValue.IsZero() {
 					return rpc.InvalidArg("request body field " + jsonTag + " is required")
 				}
 			}

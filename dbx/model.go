@@ -3,6 +3,7 @@ package dbx
 import (
 	"context"
 	"fmt"
+	"github.com/cylScripter/chest/utils"
 	"reflect"
 )
 
@@ -34,14 +35,14 @@ func NewModel(c *ModelConfig, proxy DbProxy) *Model {
 	}
 	m.typ = typ
 	m.modelType = fmt.Sprintf("%T", m.Type)
+	m.tableName = utils.CamelToSnake(m.modelType)
 	m.proxy = proxy
 	return m
 }
 func (p *Model) NewScope() *Scope {
-	s := &Scope{
-		m:  p,
-		db: p.Db,
-	}
+	s := &Scope{}
+	s.m = p
+	s.db = p.Db
 	s.cond.isTopLevel = true
 	return s
 }

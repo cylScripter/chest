@@ -21,7 +21,6 @@ type DbProxy interface {
 	Find(ctx context.Context, req *WhereReq, dest interface{}) error
 	Create(ctx context.Context, req *CreateReq, dest interface{}) error
 	ToSql(ctx context.Context, req *WhereReq, dest interface{}) (string, error)
-	AutoMigrate(dest ...interface{}) error
 	FindPaginate(ctx context.Context, req *WhereReq, dest interface{}) (*base.Paginate, error)
 	Count(ctx context.Context, req *WhereReq, dest interface{}) (int64, error)
 	Delete(ctx context.Context, req *WhereReq, dest interface{}) (DeleteResult, error)

@@ -38,7 +38,12 @@ func (s *Scope) GetModel() *Model {
 
 func (s *Scope) Model(model interface{}) *Scope {
 	m := &Model{
-		ModelConfig: ModelConfig{Type: model},
+		ModelConfig: ModelConfig{
+			Type:            model,
+			NotFoundErrCode: s.m.NotFoundErrCode,
+			Db:              s.m.Db,
+		},
+		proxy: s.m.proxy,
 	}
 	if m.Type == nil {
 		panic("Type nil")
@@ -197,8 +202,7 @@ func (s *Scope) Select(fields ...string) *Scope {
 }
 
 func (s *Scope) Find(ctx context.Context, dest interface{}) error {
-	model := s.m.getModel()
-	s.Model(model)
+
 	if len(s.groups) > 0 {
 		s.needCount = true
 	}
@@ -214,7 +218,7 @@ func (s *Scope) Find(ctx context.Context, dest interface{}) error {
 		Offset:    s.offset,
 		Orders:    orders,
 		Selects:   s.selects,
-		TableName: s.m.tableName,
+		TableName: s.GetTableName(),
 	}, dest)
 }
 func (s *Scope) ToSql(ctx context.Context, dest interface{}) (string, error) {
@@ -231,12 +235,10 @@ func (s *Scope) ToSql(ctx context.Context, dest interface{}) (string, error) {
 		Orders:    []string{s.getOrder()},
 		Selects:   s.selects,
 		needGroup: s.needCount,
-		TableName: s.m.tableName,
+		TableName: s.GetTableName(),
 	}, dest)
 }
 func (s *Scope) First(ctx context.Context, dest interface{}) error {
-	model := s.m.getModel()
-	s.Model(model)
 	if len(s.groups) > 0 {
 		s.needCount = true
 	}
@@ -253,12 +255,10 @@ func (s *Scope) First(ctx context.Context, dest interface{}) error {
 		Offset:    s.offset,
 		Orders:    orders,
 		Selects:   s.selects,
-		TableName: s.m.tableName,
+		TableName: s.GetTableName(),
 	}, dest)
 }
 func (s *Scope) FindPaginate(ctx context.Context, dest interface{}) (*base.Paginate, error) {
-	model := s.m.getModel()
-	s.Model(model)
 	if len(s.groups) > 0 {
 		s.needCount = true
 	}
@@ -275,21 +275,18 @@ func (s *Scope) FindPaginate(ctx context.Context, dest interface{}) (*base.Pagin
 		Offset:    s.offset,
 		Orders:    orders,
 		Selects:   s.selects,
-		TableName: s.m.tableName,
+		TableName: s.GetTableName(),
 	}, dest)
 }
 func (s *Scope) Create(ctx context.Context, dest interface{}) error {
-	model := s.m.getModel()
-	s.Model(model)
 	return s.m.proxy.Create(ctx, &CreateReq{
-		TableName: s.m.tableName,
+		TableName: s.GetTableName(),
 		Selects:   s.selects,
 		Omit:      s.skips,
 	}, dest)
 }
 func (s *Scope) Count(ctx context.Context) (int64, error) {
 	model := s.m.getModel()
-	s.Model(model)
 	if len(s.groups) > 0 {
 		s.needCount = true
 	}
@@ -305,33 +302,32 @@ func (s *Scope) Count(ctx context.Context) (int64, error) {
 		Groups:    []string{s.getGroup()},
 		needGroup: s.needCount,
 		Orders:    orders,
-		TableName: s.m.tableName,
+		TableName: s.GetTableName(),
 	}, model)
 }
 func (s *Scope) UseDb(db string) *Scope {
 	s.db = db
 	return s
 }
+
 func (s *Scope) UseTable(table string) *Scope {
 	s.table = table
 	return s
 }
 func (s *Scope) Update(ctx context.Context, values map[string]interface{}) (UpdateResult, error) {
 	model := s.m.getModel()
-	s.Model(model)
 	return s.m.proxy.Update(ctx, &WhereReq{
 		Unscoped:  s.unscoped,
 		Cond:      []string{s.GetCondString()},
-		TableName: s.m.tableName,
+		TableName: s.GetTableName(),
 	}, model, values)
 
 }
 func (s *Scope) Delete(ctx context.Context) (DeleteResult, error) {
 	model := s.m.getModel()
-	s.Model(model)
 	return s.m.proxy.Delete(ctx, &WhereReq{
 		Unscoped:  s.unscoped,
 		Cond:      []string{s.GetCondString()},
-		TableName: s.m.tableName,
+		TableName: s.GetTableName(),
 	}, model)
 }

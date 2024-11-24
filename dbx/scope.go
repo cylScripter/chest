@@ -2,9 +2,11 @@ package dbx
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/cylScripter/chest/utils"
 	"github.com/cylScripter/openapi/base"
+	"gorm.io/gorm"
 	"reflect"
 	"strings"
 )
@@ -330,4 +332,54 @@ func (s *Scope) Delete(ctx context.Context) (DeleteResult, error) {
 		Cond:      []string{s.GetCondString()},
 		TableName: s.GetTableName(),
 	}, model)
+}
+
+func (s *Scope) FirstOrCreate(ctx context.Context, attributes map[string]interface{}, values map[string]interface{}, obj interface{}) (FirstOrCreateResult, error) {
+	res := FirstOrCreateResult{}
+	err := s.Where(attributes).First(ctx, obj)
+	all := make(map[string]interface{})
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			for k, v := range attributes {
+				all[k] = v
+			}
+			for k, v := range values {
+				all[k] = v
+			}
+			err := s.Create(ctx, all)
+			if err != nil {
+				return FirstOrCreateResult{}, err
+			} else {
+				res.Created = true
+			}
+
+		} else {
+			return FirstOrCreateResult{}, err
+		}
+	}
+	return res, nil
+}
+
+func (s *Scope) FirstOrUpdate(ctx context.Context, attributes map[string]interface{}, values map[string]interface{}, obj interface{}) (FirstOrCreateResult, error) {
+	res := FirstOrCreateResult{}
+	err := s.Where(attributes).First(ctx, obj)
+	all := make(map[string]interface{})
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			for k, v := range attributes {
+				all[k] = v
+			}
+			for k, v := range values {
+				all[k] = v
+			}
+			_, err := s.Update(ctx, all)
+			if err != nil {
+				return FirstOrCreateResult{}, err
+			}
+			res.Created = true
+		} else {
+			return FirstOrCreateResult{}, err
+		}
+	}
+	return res, nil
 }

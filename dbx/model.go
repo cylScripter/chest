@@ -68,5 +68,13 @@ func (p *Model) getModel() interface{} {
 }
 func (p *Model) Create(ctx context.Context, dest interface{}) error {
 	s := p.NewScope()
-	return s.Model(p.getModel()).Create(ctx, dest)
+	return s.Create(ctx, dest)
+}
+
+func (p *Model) FirstOrCreate(ctx context.Context, attributes map[string]interface{}, values map[string]interface{}, obj interface{}) (FirstOrCreateResult, error) {
+	return p.NewScope().FirstOrCreate(ctx, attributes, values, obj)
+}
+
+func (p *Model) FirstOrUpdate(ctx context.Context, attributes map[string]interface{}, values map[string]interface{}, obj interface{}) (FirstOrCreateResult, error) {
+	return p.NewScope().FirstOrUpdate(ctx, attributes, values, obj)
 }

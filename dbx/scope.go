@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/cylScripter/chest/log"
 	"github.com/cylScripter/chest/utils"
 	"github.com/cylScripter/openapi/base"
 	"gorm.io/gorm"
+	"k8s.io/apimachinery/pkg/util/json"
 	"reflect"
 	"strings"
 )
@@ -346,7 +348,8 @@ func (s *Scope) FirstOrCreate(ctx context.Context, attributes map[string]interfa
 			for k, v := range values {
 				all[k] = v
 			}
-			err := s.Create(ctx, all)
+			err = map2Interface(all, obj)
+			err = s.Create(ctx, obj)
 			if err != nil {
 				return FirstOrCreateResult{}, err
 			} else {
@@ -365,21 +368,44 @@ func (s *Scope) FirstOrUpdate(ctx context.Context, attributes map[string]interfa
 	err := s.Where(attributes).First(ctx, obj)
 	all := make(map[string]interface{})
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			for k, v := range attributes {
-				all[k] = v
-			}
-			for k, v := range values {
-				all[k] = v
-			}
-			_, err := s.Update(ctx, all)
-			if err != nil {
-				return FirstOrCreateResult{}, err
-			}
-			res.Created = true
-		} else {
-			return FirstOrCreateResult{}, err
+		return FirstOrCreateResult{}, err
+	}
+	for k, v := range attributes {
+		all[k] = v
+	}
+	for k, v := range values {
+		all[k] = v
+	}
+	_, err = s.Update(ctx, all)
+	if err != nil {
+		return FirstOrCreateResult{}, err
+	}
+	err = map2Interface(all, obj)
+	if err != nil {
+		return FirstOrCreateResult{}, err
+	}
+	res.Created = true
+
+	return res, nil
+}
+
+func map2Interface(m map[string]interface{}, i interface{}) error {
+	if nm, ok := i.(*map[string]interface{}); ok {
+		p := *nm
+		for k, v := range m {
+			p[k] = v
+		}
+	} else {
+		b, err := json.Marshal(m)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
+		}
+		err = json.Unmarshal(b, i)
+		if err != nil {
+			log.Errorf("err:%v", err)
+			return err
 		}
 	}
-	return res, nil
+	return nil
 }

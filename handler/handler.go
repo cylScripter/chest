@@ -7,7 +7,6 @@ import (
 	"github.com/cloudwego/kitex/pkg/kerrors"
 	"github.com/cloudwego/kitex/pkg/remote"
 	"github.com/cloudwego/kitex/pkg/utils"
-	"github.com/cylScripter/chest/log"
 	"github.com/cylScripter/chest/rpc"
 	"reflect"
 	"strings"
@@ -48,14 +47,13 @@ func ValidateRequest(next endpoint.Endpoint) endpoint.Endpoint {
 				field := requestType.Elem().Field(i)
 				fieldValue := requestValue.Elem().Field(i)
 				jsonTag := strings.Split(field.Tag.Get("json"), ",")[0]
-				if field.Tag.Get("validate") != "" && fieldValue.IsZero() {
+				if field.Tag.Get("binding") == "required" && fieldValue.IsZero() {
 					return rpc.InvalidArg("request body field " + jsonTag + " is required")
 				}
 			}
 		}
 		err := next(ctx, request, response)
 		if err != nil {
-			log.Infof("err %v", err)
 			return err
 		}
 		return nil

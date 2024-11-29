@@ -325,6 +325,8 @@ func (p *Cond) where(args ...interface{}) {
 				p.where(list...)
 			}
 		}
+	default:
+		panic("unhandled default case")
 	}
 }
 func (p *Cond) ToString() string {

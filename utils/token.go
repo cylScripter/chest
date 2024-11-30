@@ -10,14 +10,19 @@ import (
 type Token struct {
 	ExpiredAt int64
 	Signature string // 签名
+	SecretKey string
 }
 
-func NewToken(userId string, expiredAt int64) *Token {
-	return &Token{ExpiredAt: expiredAt, Signature: userId + "\000" + strconv.FormatInt(expiredAt, 10)}
+func NewToken(userId string, expiredAt int64, secretKey string) *Token {
+	return &Token{
+		ExpiredAt: expiredAt,
+		SecretKey: secretKey,
+		Signature: userId + "\000" + strconv.FormatInt(expiredAt, 10),
+	}
 }
 
-func (token *Token) Sign(key []byte) string {
-	aesEncrypt := NewAesEncrypt(key)
+func (token *Token) Sign() string {
+	aesEncrypt := NewAesEncrypt([]byte(token.SecretKey))
 	encryptedToken, err := aesEncrypt.Encrypt([]byte(token.Signature))
 	if err != nil {
 		return ""

@@ -389,6 +389,12 @@ func (s *Scope) FirstOrUpdate(ctx context.Context, attributes map[string]interfa
 	return res, nil
 }
 
+func (s *Scope) Save(ctx context.Context, dest interface{}) error {
+	return s.m.proxy.Save(ctx, &WhereReq{
+		TableName: s.GetTableName(),
+	}, dest)
+}
+
 func map2Interface(m map[string]interface{}, i interface{}) error {
 	if nm, ok := i.(*map[string]interface{}); ok {
 		p := *nm

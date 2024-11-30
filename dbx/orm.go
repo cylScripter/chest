@@ -26,6 +26,7 @@ type DbProxy interface {
 	Delete(ctx context.Context, req *WhereReq, dest interface{}) (DeleteResult, error)
 	AutoMigrate(dest ...interface{}) error
 	Update(ctx context.Context, req *WhereReq, dest interface{}, values map[string]interface{}) (UpdateResult, error)
+	Save(ctx context.Context, req *WhereReq, dest interface{}) error
 }
 
 type DbConfig struct {
@@ -348,4 +349,9 @@ func (p *Db) Update(ctx context.Context, req *WhereReq, dest interface{}, values
 	res.Sql = result.Statement.SQL.String()
 	res.RowsAffected = uint64(result.RowsAffected)
 	return res, nil
+}
+
+func (p *Db) Save(ctx context.Context, req *WhereReq, dest interface{}) error {
+	query := p.GetModel(req.TableName, dest)
+	return query.Save(dest).Error
 }

@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/cylScripter/chest/log"
-	"github.com/cylScripter/chest/rpc"
 	"github.com/cylScripter/chest/utils"
 	"github.com/cylScripter/openapi/base"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"reflect"
 	"strings"
 	"time"
 )
@@ -236,19 +234,8 @@ func (p *Db) FindPaginate(ctx context.Context, req *WhereReq, dest interface{}) 
 
 func (p *Db) FindWithResult(ctx context.Context, req *WhereReq, dest interface{}) (SelectResult, error) {
 	var res SelectResult
-	v := reflect.ValueOf(dest)
-	if v.Type().Kind() != reflect.Ptr {
-		err := rpc.InvalidArg("invalid out type, not ptr")
-		return res, err
-	}
-
-	v = v.Elem()
-	if v.Type().Kind() != reflect.Slice {
-		err := rpc.InvalidArg("invalid out type, not ptr to slice")
-		return res, err
-	}
 	var total int64
-	query := p.GetModel(req.TableName, dest).Count(&total)
+	query := p.GetModel(req.TableName, dest)
 	var limit int
 	switch {
 	case req.Limit < 0:
@@ -261,6 +248,7 @@ func (p *Db) FindWithResult(ctx context.Context, req *WhereReq, dest interface{}
 	if !req.Unscoped {
 		query = query.Scopes(ScopeGetIsDel())
 	}
+	query.Count(&total)
 	if limit > 0 {
 		query = query.Limit(int(req.Limit))
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/cylScripter/chest/utils"
+	"github.com/cylScripter/openapi/base"
 	"reflect"
 )
 
@@ -51,6 +52,14 @@ func (p *Model) UnScoped() *Scope {
 	s.Unscoped()
 	return s
 }
+
+func (p *Model) WithListOption(listOption *base.ListOption) *Scope {
+	s := p.NewScope()
+	s.SetLimit(uint32(listOption.Limit))
+	s.SetOffset(uint32(listOption.Offset))
+	return s
+}
+
 func (p *Model) Where(whereCond ...interface{}) *Scope {
 	s := p.NewScope()
 	s.cond.Where(whereCond...)

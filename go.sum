@@ -26,8 +26,8 @@ github.com/cloudwego/runtimex v0.1.0 h1:HG+WxWoj5/CDChDZ7D99ROwvSMkuNXAqt6hnhTTZ
 github.com/cloudwego/runtimex v0.1.0/go.mod h1:23vL/HGV0W8nSCHbe084AgEBdDV4rvXenEUMnUNvUd8=
 github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/cylScripter/openapi v1.0.0 h1:Dk3FiVOZHfshpWmF5+BTCfA2MrpFCct/6mGu/uO+ZGE=
-github.com/cylScripter/openapi v1.0.0/go.mod h1:PyDvXDXK1/0pfXxqgwqTJ1aUvEhAhRrajAlK63rYkbg=
+github.com/cylScripter/openapi v1.0.23 h1:yDaIHXEAE5Sw/m5ZMy0yUgEslb4ricmJVG/7CyXSHqQ=
+github.com/cylScripter/openapi v1.0.23/go.mod h1:PyDvXDXK1/0pfXxqgwqTJ1aUvEhAhRrajAlK63rYkbg=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=

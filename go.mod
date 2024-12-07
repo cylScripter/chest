@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/bytedance/gopkg v0.1.1
 	github.com/cloudwego/kitex v0.11.3
-	github.com/cylScripter/openapi v1.0.0
+	github.com/cylScripter/openapi v1.0.23
 	github.com/elliotchance/pie v1.39.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	gorm.io/driver/mysql v1.5.7

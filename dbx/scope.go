@@ -415,3 +415,55 @@ func map2Interface(m map[string]interface{}, i interface{}) error {
 	}
 	return nil
 }
+
+func (s *Scope) WhereIn(fieldName string, list interface{}) *Scope {
+	vo := utils.EnsureIsSliceOrArray(list)
+	if vo.Len() == 0 {
+		s.cond.where(false)
+		return s
+	}
+	s.cond.where(fieldName, "IN", utils.UniqueSlice(vo.Interface()))
+	return s
+}
+func (s *Scope) WhereNotIn(fieldName string, list interface{}) *Scope {
+	vo := utils.EnsureIsSliceOrArray(list)
+	if vo.Len() == 0 {
+		return s
+	}
+	s.cond.where(fieldName, "NOT IN", utils.UniqueSlice(vo.Interface()))
+	return s
+}
+
+//func (p *Scope) WhereRaw(cond string) *Scope {
+//	p.cond.whereRaw(cond)
+//	return p
+//}
+//
+//// mysql 是包含 min, max, 相当于 field >= min && field <= max
+//func (p *Scope) WhereBetween(fieldName string, min, max interface{}) *Scope {
+//	p.cond.whereRaw(fmt.Sprintf("%s BETWEEN ? AND ?", quoteFieldName(fieldName)), min, max)
+//	return p
+//}
+//func (p *Scope) WhereToday(fieldName string) *Scope {
+//	today := time.Now()
+//	p.WhereDate(fieldName, today)
+//	return p
+//}
+//func (p *Scope) WhereDate(fieldName string, t time.Time) *Scope {
+//	p.cond.whereRaw(fmt.Sprintf("%s BETWEEN ? AND ?", quoteFieldName(fieldName)), utils.BeginTimeStampOfDate(t), utils.EndTimeStampOfDate(t))
+//	return p
+//}
+//
+//// 相当于 field < min || field > max
+//func (p *Scope) WhereNotBetween(fieldName string, min, max interface{}) *Scope {
+//	p.cond.whereRaw(fmt.Sprintf("%s NOT BETWEEN ? AND ?", quoteFieldName(fieldName)), min, max)
+//	return p
+//}
+//func (p *Scope) WhereLike(fieldName string, str string) *Scope {
+//	p.cond.conds = append(p.cond.conds, fmt.Sprintf("(%s LIKE %s)", quoteFieldName(fieldName), quoteStr(utils.EscapeMysqlLikeWildcardIgnore2End(str))))
+//	return p
+//}
+//func (p *Scope) WhereNotLike(fieldName string, str string) *Scope {
+//	p.cond.conds = append(p.cond.conds, fmt.Sprintf("(%s NOT LIKE %s)", quoteFieldName(fieldName), quoteStr(utils.EscapeMysqlLikeWildcardIgnore2End(str))))
+//	return p
+//}

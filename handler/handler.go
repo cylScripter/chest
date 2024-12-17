@@ -50,6 +50,9 @@ func ValidateRequest(next endpoint.Endpoint) endpoint.Endpoint {
 				if field.Tag.Get("binding") == "required" && fieldValue.IsZero() {
 					return rpc.InvalidArg("request body field " + jsonTag + " is required")
 				}
+				if fieldValue.Kind() == reflect.Slice && fieldValue.Len() == 0 {
+					return rpc.InvalidArg("request body field " + jsonTag + " is empty")
+				}
 			}
 		}
 		err := next(ctx, request, response)

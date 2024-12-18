@@ -185,12 +185,7 @@ func (p *Db) Create(ctx context.Context, req *CreateReq, dest interface{}) error
 	if len(req.Selects) > 0 {
 		query = query.Select(req.Selects)
 	}
-	data, err := StructToMap(dest)
-	if err != nil {
-		log.Errorf("StructToMap failed, err:%v", err)
-		return err
-	}
-	return query.Create(data).Error
+	return query.Create(dest).Error
 }
 
 func (p *Db) First(ctx context.Context, req *WhereReq, dest interface{}) error {

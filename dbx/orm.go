@@ -2,6 +2,7 @@ package dbx
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/cylScripter/chest/log"
 	"github.com/cylScripter/chest/utils"
@@ -184,7 +185,14 @@ func (p *Db) Create(ctx context.Context, req *CreateReq, dest interface{}) error
 	if len(req.Selects) > 0 {
 		query = query.Select(req.Selects)
 	}
-	return query.Create(dest).Error
+
+	data, err := StructToMap(dest)
+	if err != nil {
+		log.Errorf("StructToMap failed, err:%v", err)
+		return err
+	}
+
+	return query.Create(data).Error
 }
 
 func (p *Db) First(ctx context.Context, req *WhereReq, dest interface{}) error {
@@ -342,4 +350,17 @@ func (p *Db) Update(ctx context.Context, req *WhereReq, dest interface{}, values
 func (p *Db) Save(ctx context.Context, req *WhereReq, dest interface{}) error {
 	query := p.GetModel(req.TableName, dest)
 	return query.Save(dest).Error
+}
+
+func StructToMap(s interface{}) (map[string]interface{}, error) {
+	data, err := json.Marshal(s)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

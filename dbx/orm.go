@@ -185,13 +185,11 @@ func (p *Db) Create(ctx context.Context, req *CreateReq, dest interface{}) error
 	if len(req.Selects) > 0 {
 		query = query.Select(req.Selects)
 	}
-
 	data, err := StructToMap(dest)
 	if err != nil {
 		log.Errorf("StructToMap failed, err:%v", err)
 		return err
 	}
-
 	return query.Create(data).Error
 }
 
@@ -352,12 +350,12 @@ func (p *Db) Save(ctx context.Context, req *WhereReq, dest interface{}) error {
 	return query.Save(dest).Error
 }
 
-func StructToMap(s interface{}) (map[string]interface{}, error) {
+func StructToMap(s interface{}) (map[string]string, error) {
 	data, err := json.Marshal(s)
 	if err != nil {
 		return nil, err
 	}
-	var result map[string]interface{}
+	var result map[string]string
 	err = json.Unmarshal(data, &result)
 	if err != nil {
 		return nil, err

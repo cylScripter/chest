@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 func serializeStructToMap(input interface{}) (map[string]string, error) {
@@ -44,6 +45,31 @@ func serializeStructToMap(input interface{}) (map[string]string, error) {
 			continue
 		}
 
+		// Handle arrays and slices
+		if fieldValue.Kind() == reflect.Array || fieldValue.Kind() == reflect.Slice {
+			arrayLength := fieldValue.Len()
+			var arrayElements []string
+			for j := 0; j < arrayLength; j++ {
+				elementValue := fieldValue.Index(j)
+				switch elementValue.Kind() {
+				case reflect.String:
+					arrayElements = append(arrayElements, elementValue.String())
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					arrayElements = append(arrayElements, strconv.FormatInt(elementValue.Int(), 10))
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					arrayElements = append(arrayElements, strconv.FormatUint(elementValue.Uint(), 10))
+				case reflect.Float32, reflect.Float64:
+					arrayElements = append(arrayElements, strconv.FormatFloat(elementValue.Float(), 'f', -1, 64))
+				case reflect.Bool:
+					arrayElements = append(arrayElements, strconv.FormatBool(elementValue.Bool()))
+				default:
+					// Unsupported types are ignored
+				}
+			}
+			result[jsonTag] = "[" + strings.Join(arrayElements, ",") + "]"
+			continue
+		}
+
 		// Convert values to strings
 		switch fieldValue.Kind() {
 		case reflect.String:
@@ -65,19 +91,19 @@ func serializeStructToMap(input interface{}) (map[string]string, error) {
 }
 
 type ModelFile struct {
-	Id         int32          `json:"id"`
-	CreatedAt  int32          `json:"created_at"`
-	UpdatedAt  int32          `json:"updated_at"`
-	FileName   string         `json:"file_name"`
-	FilePath   string         `json:"file_path"`
-	FileType   int32          `json:"file_type"`
-	Status     int32          `json:"status"`
-	UploadId   string         `json:"upload_id"`
-	Meta       ModelFile_Meta `json:"meta"`
-	Suffix     string         `json:"suffix"`
-	StrFileId  string         `json:"str_file_id"`
-	BucketName string         `json:"bucket_name"`
-	DeleteAt   int32          `json:"delete_at"`
+	Id         int32   `json:"id"`
+	CreatedAt  int32   `json:"created_at"`
+	UpdatedAt  int32   `json:"updated_at"`
+	FileName   string  `json:"file_name"`
+	FilePath   string  `json:"file_path"`
+	FileType   int32   `json:"file_type"`
+	Status     int32   `json:"status"`
+	UploadId   string  `json:"upload_id"`
+	Meta       []int32 `json:"meta"`
+	Suffix     string  `json:"suffix"`
+	StrFileId  string  `json:"str_file_id"`
+	BucketName string  `json:"bucket_name"`
+	DeleteAt   int32   `json:"delete_at"`
 }
 
 type ModelFile_Meta struct {
@@ -87,11 +113,11 @@ type ModelFile_Meta struct {
 }
 
 func main() {
-	meta := ModelFile_Meta{
-		Size:    12345,
-		Author:  "John Doe",
-		Version: "1.0.0",
-	}
+	//meta := ModelFile_Meta{
+	//	Size:    12345,
+	//	Author:  "John Doe",
+	//	Version: "1.0.0",
+	//}
 
 	model := ModelFile{
 		Id:         1,
@@ -102,7 +128,7 @@ func main() {
 		FileType:   1,
 		Status:     0,
 		UploadId:   "upload123",
-		Meta:       meta,
+		Meta:       []int32{1, 2, 35},
 		Suffix:     ".txt",
 		StrFileId:  "hash123",
 		BucketName: "my-bucket",
@@ -115,5 +141,5 @@ func main() {
 		return
 	}
 
-	fmt.Printf("Serialized Map: %v\n", serialized)
+	fmt.Printf("Serialized Map: %v\n", serialized["meta"])
 }

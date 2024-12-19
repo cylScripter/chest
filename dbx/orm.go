@@ -2,15 +2,12 @@ package dbx
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/cylScripter/chest/log"
 	"github.com/cylScripter/chest/utils"
 	"github.com/cylScripter/openapi/base"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"reflect"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -187,11 +184,7 @@ func (p *Db) Create(ctx context.Context, req *CreateReq, dest interface{}) error
 	if len(req.Selects) > 0 {
 		query = query.Select(req.Selects)
 	}
-	data, err := serializeStructToMap(dest)
-	if err != nil {
-		return err
-	}
-	return query.Create(data).Error
+	return query.Create(dest).Error
 }
 
 func (p *Db) First(ctx context.Context, req *WhereReq, dest interface{}) error {
@@ -349,61 +342,4 @@ func (p *Db) Update(ctx context.Context, req *WhereReq, dest interface{}, values
 func (p *Db) Save(ctx context.Context, req *WhereReq, dest interface{}) error {
 	query := p.GetModel(req.TableName, dest)
 	return query.Save(dest).Error
-}
-
-func serializeStructToMap(input interface{}) (map[string]string, error) {
-	result := make(map[string]string)
-	value := reflect.ValueOf(input)
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
-	}
-	if value.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("input must be a struct or pointer to struct")
-	}
-
-	typ := value.Type()
-
-	for i := 0; i < value.NumField(); i++ {
-		field := typ.Field(i)
-		fieldValue := value.Field(i)
-
-		// Get the JSON key or fallback to field name
-		jsonTag := field.Tag.Get("json")
-		if jsonTag == "" {
-			jsonTag = field.Name
-		}
-
-		// Handle nested structs
-		if fieldValue.Kind() == reflect.Struct {
-			nestedMap, err := serializeStructToMap(fieldValue.Interface())
-			if err != nil {
-				return nil, err
-			}
-			// Serialize nested map as JSON
-			nestedJSON, err := json.Marshal(nestedMap)
-			if err != nil {
-				return nil, err
-			}
-			result[jsonTag] = string(nestedJSON)
-			continue
-		}
-
-		// Convert values to strings
-		switch fieldValue.Kind() {
-		case reflect.String:
-			result[jsonTag] = fieldValue.String()
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			result[jsonTag] = strconv.FormatInt(fieldValue.Int(), 10)
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			result[jsonTag] = strconv.FormatUint(fieldValue.Uint(), 10)
-		case reflect.Float32, reflect.Float64:
-			result[jsonTag] = strconv.FormatFloat(fieldValue.Float(), 'f', -1, 64)
-		case reflect.Bool:
-			result[jsonTag] = strconv.FormatBool(fieldValue.Bool())
-		default:
-			// Unsupported types are ignored
-		}
-	}
-
-	return result, nil
 }
